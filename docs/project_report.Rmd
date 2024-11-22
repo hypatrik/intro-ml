@@ -56,7 +56,10 @@ sns.heatmap(corr, annot=True, cmap='coolwarm')
 
 # Trying out different models
 Baseline values without any feature engineering or other tweaking:
-
+```{python, echo=FALSE}
+initial_values_df = pd.read_csv('./initial_model_evaluation_results.csv', encoding='utf-8', header=0)
+print(initial_values_df)
+```
 ## Dummy
 ## Linear Regression
 ## Random Forest
