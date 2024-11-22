@@ -1,0 +1,65 @@
+---
+title: "IML2024 Term project Report"
+author: "Patrik, Mikko Kallio, Tuuli Toivanen-Gripentrog"
+date: "`r Sys.Date()`"
+output: 
+  pdf_document:
+    extra_dependencies: ['amsmath']
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+library(reticulate)
+py_install("numpy")
+py_install("pandas")
+py_install("matplotlib")
+py_install("seaborn")
+py_install("statsmodels")
+py_install("ISLP")
+```
+
+```{python, echo=FALSE}
+import numpy as np
+import pandas as pd
+import seaborn as sns
+import matplotlib.pyplot as plt
+
+df_train = pd.read_csv('./data/train.csv', encoding='utf-8', header=0)
+df_test = pd.read_csv('./data/test.csv', encoding='utf-8', header=0)
+
+```
+
+# Data Exploration
+
+## Feature correlations
+First we analyzed the different features and how they correlate between the target column log_pSat_Pa.
+
+Then we analyzed the correlation values and listed the features which have the strongest correlation with the target as well the stronges correlation pairs among the features:
+
+```{python, echo=FALSE}
+# Korrelaatiomatriisi
+corr = df_train.drop(columns=['ID', 'parentspecies']).corr()
+target_corr = corr['log_pSat_Pa']
+strongest_corr = target_corr.abs().sort_values(ascending=False)
+strongest_corr = strongest_corr.drop('log_pSat_Pa')
+print(f"Strongest correlation between the target:\n{strongest_corr.head(10)}")
+print("---------------------")
+corr_without_target = df_train.drop(columns=['ID', 'parentspecies', 'log_pSat_Pa']).corr()
+corr_pairs = corr_without_target.where(np.triu(np.ones(corr_without_target.shape), k=1).astype(bool))
+sorted_pairs = corr_pairs.unstack().dropna().abs().sort_values(ascending=False)
+print(f"Strongest correlation pairs: \n{sorted_pairs.head(10)}")
+
+plt.figure(figsize=(12, 12))
+sns.heatmap(corr, annot=True, cmap='coolwarm')
+```
+
+
+# Trying out different models
+Baseline values without any feature engineering or other tweaking:
+
+## Dummy
+## Linear Regression
+## Random Forest
+## Gradient Boosting Regressor
+
+
