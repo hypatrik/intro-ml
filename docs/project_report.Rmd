@@ -1,7 +1,9 @@
 ---
 title: "IML2024 Term project Report"
-author: "Patrik, Mikko Kallio, Tuuli Toivanen-Gripentrog"
+author: "Patrik Keinonen, Mikko Kallio, Tuuli Toivanen-Gripentrog"
 date: "`r Sys.Date()`"
+bibliography: references.bib  
+csl: ieee.csl
 output: 
   pdf_document:
     extra_dependencies: ['amsmath']
@@ -24,17 +26,24 @@ import pandas as pd
 import seaborn as sns
 import matplotlib.pyplot as plt
 
-df_train = pd.read_csv('./data/train.csv', encoding='utf-8', header=0)
-df_test = pd.read_csv('./data/test.csv', encoding='utf-8', header=0)
+df_train = pd.read_csv('../data/train.csv', encoding='utf-8', header=0)
+df_test = pd.read_csv('../data/test.csv', encoding='utf-8', header=0)
 
 ```
 
-# Data Exploration
+
+
+# Introduction
+Pate hoitaa
+
+Kirjoita millaiseen malliin päädyttiin, mitkä parametrit ja featuret jne. 
+
+## Final Kaggle Score
+# Feature engineering
 
 ## Feature correlations
-First we analyzed the different features and how they correlate between the target column log_pSat_Pa.
-
-Then we analyzed the correlation values and listed the features which have the strongest correlation with the target as well the stronges correlation pairs among the features:
+We analyzed the different features and how they correlate between the target column log_pSat_Pa.  
+We analyzed the correlation values and listed the features which have the strongest correlation with the target as well the strongest correlation pairs among the features:
 
 ```{python, echo=FALSE}
 # Korrelaatiomatriisi
@@ -53,16 +62,87 @@ plt.figure(figsize=(12, 12))
 sns.heatmap(corr, annot=True, cmap='coolwarm')
 ```
 
+We did not get good results by only selecting a subset of features based on the correlations above. We tried for example to select only the 5 most correlated variables and exclude others as well as drop some of features which were highly correlated with some other feature. This did not improve the models performance. Hence, we moved on to some more advanced feature engineering techniques. 
+
+## Data Cleaning:
+
+Replace infinite values and missing data with zero. This ensures the dataset is well-suited for downstream modeling by preventing issues with invalid numerical values.
+
+## Creation of Derived Features:
+
+We quickly realized lacking domain knowledge in chemistry, the competence required analysing molecular data. The principal idea is to compose *meaningful features*, something we were inspired by the discussion at *Bayesian Data Analysis* course in the context of GLM (generalized linear models). After studying the university guidelines provided in the course page, we interpreted the rules such that we are able to use an external AI consultant. Hence, providing a listing of the features with descriptions to ChatGPT, we asked what formulas in chemistry uses the given covariates as parameters. We received a listing of formulas which we then implemented in the feature engineering phase.
+
+* AtomFraction: Proportion of carbon, oxygen, and nitrogen atoms in the molecule relative to the total atom count.
+* Polarity: Ratio of hydrogen bond donors to molecular weight.
+* HBondDensity: Ratio of hydrogen bond donors to the total number of atoms.
+* GroupDensity_CarboxylicAcid: Concentration of carboxylic acid groups per unit molecular weight
+* Unsaturation: Sum of non-aromatic double bonds and C=C-C=O bonds in non-aromatic rings.  
+`df['Unsaturation'] = df['C=C (non-aromatic)'] + df['C=C-C=O in non-aromatic ring']`
+* ConfigurationalComplexity: Ratio of the number of stable conformers to molecular weight.  
+`df['ConfigurationalComplexity'] = df['NumOfConf'] / df['MW']`
+
+* HydrogenBondPotential: Total potential for hydrogen bonding based on hydrogen bond donors and nitrogen/oxygen atoms.  
+`df['HydrogenBondPotential'] = df['NumHBondDonors'] + (df['NumOfO'] + df['NumOfN'])`
+* PolarGroupCount: Count of polar functional groups.  
+`polar_groups = ['hydroxyl (alkyl)', 'aldehyde', 'ketone', 'carboxylic acid', 'ester', 'nitro']`
+* AromaticGroupFraction: Proportion of aromatic hydroxyl groups relative to all polar groups.  
+`df['AromaticGroupFraction'] = df['aromatic hydroxyl'] / (df[polar_groups + ['aromatic hydroxyl']].sum(axis=1) + 1e-9)`
+* MolecularSize: Combined measure of molecular weight and atom count.
+* Hydrophobicity: Ratio of carbon atoms to the total atom count.
+* DegreeOfUnsaturation: Measure of molecular unsaturation based on carbon and atom counts.
+* ShapeCompactness: Ratio of atom count to the number of conformers used in calculations.
+* SymmetryIndex: Ratio of symmetric to asymmetric functional groups.
+* VolatilityIndex: Proxy for molecular volatility based on carbon-to-polar group ratio and molecular weight.
+* PolarityIndex: A combined measure of molecular polarity.
+* OxygenToCarbonRatio: Relative proportion of oxygen to carbon atoms.
+
+## Interaction Features:
+
+To capture non-linear relationships, several interaction terms were introduced. We experimented with Sklearn `PolynomialFeatures(degree=2, intercation_only=True)`. This resulted in a convoluted dataset. Principal component analysis was also employed to reduce the complexity of the model. However, we defaulted into a more crude, manual process by defining the interactions by hand using semi-brute-force strategy.
+Hence, we tried different interactions such as: 
+
+* PolarityIndex * FlexibilityRatio
+* ShapeCompactness * FlexibilityRatio
+
+in order to model potential synergistic effects between molecular properties.
+
+
+## Feature transformations
+As part of the preprocessing pipeline, we systematically explored various mathematical transformations of the input features to improve the model's performance. Transforming features can help normalize distributions, reduce the influence of outliers, and capture nonlinear patterns. 
+
+We developed a function to iterate through features and apply transformations based on a predefined set of transformation functions. Using a brute-force approach, we systematically evaluated each transformation for all features by assessing their impact on model performance.
+
+
+**Transformation Functions Explored:**  
+
+* Logarithmic (log): Compresses large values and expands small ones, effective for reducing skewness.
+* Square root (sqrt): Reduces the magnitude of large values while preserving smaller ones.
+* Square (square): Amplifies differences in values, highlighting larger magnitudes.
+* Cubic (cube): A stronger version of the square transformation to capture higher-order relationships.
+* Exponential (exp): Expands small differences in values, useful for features with compressed scales.
+* Reciprocal (1/x): Inverts the scale, useful for features with large values that need downweighting.
+* Box-Cox: A parameterized transformation that aims to stabilize variance and make data approximately normal (applied only for strictly positive features). @noauthor_box_nodate 
+* Yeo-Johnson: Similar to Box-Cox but works with both positive and negative values. @kjytay_box-cox_2021
 
 # Trying out different models
-Baseline values without any feature engineering or other tweaking:
-```{python, echo=FALSE}
-initial_values_df = pd.read_csv('./initial_model_evaluation_results.csv', encoding='utf-8', header=0)
-print(initial_values_df)
-```
-## Dummy
-## Linear Regression
-## Random Forest
-## Gradient Boosting Regressor
+
+We evaluated several models from different families listed below.
+
+* Dummy regressor
+* Linear Regression
+* Random Forest
+* Gradient Boosting Regressor
+* Epsilon-Support Vector Regressor SVR @noauthor_svr_nodate
+
+We observed that most promising results were produced by SVR and GBR models, where SVR out-performed that GBR with a small margin given a few different parameterizations. Given the limited amount of time allocated for this project, we decided to commit to SVR without any further analysis.
+
+
+# Evaluate model with different parameters and features
+
+Engineering of Machine Learning course covers a broad set of tools to practise professional, production level ML system management. Tuning the parameters of a model is a tedious task, which fortunately can be automatized. We implemented a model tuning infrastructure on top of Optuna @noauthor_optuna_nodate. Optuna was left running for hours traversing in the parameter space towards (some) optimal set of parameters. Using an iterative process of alternately exploring feature engineering and running hyperparameter tuning in Optuna, we found an improved combination of features and hyperparameters. 
+
+No experiments can be done without an adequate measure of model performance. We considered using either separate train-validation split or use cross-validation. After exploring both avenues, because of the benefits discussed in the IML textbook @james_introduction_2023, we decided to move forward with cross-validation with five folds.
+
+# References
 
 
