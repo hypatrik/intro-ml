@@ -34,11 +34,13 @@ df_test = pd.read_csv('../data/test.csv', encoding='utf-8', header=0)
 
 
 # Introduction
-Pate hoitaa
 
-Kirjoita millaiseen malliin päädyttiin, mitkä parametrit ja featuret jne. 
+In this project we use a support vector regressor (model) to predict logarithmic saturation vapour pressure of the molecule. We use the idea of producing meaningful features by deriving new features (based on known formulas in chemistry). The SVR model with the augmented dataset is tuned using automatic hyperparameter tuning.
 
 ## Final Kaggle Score
+
+0.7571
+
 # Feature engineering
 
 ## Feature correlations
@@ -70,7 +72,7 @@ Replace infinite values and missing data with zero. This ensures the dataset is 
 
 ## Creation of Derived Features:
 
-We quickly realized lacking domain knowledge in chemistry, the competence required analysing molecular data. The principal idea is to compose *meaningful features*, something we were inspired by the discussion at *Bayesian Data Analysis* course in the context of GLM (generalized linear models). After studying the university guidelines provided in the course page, we interpreted the rules such that we are able to use an external AI consultant. Hence, providing a listing of the features with descriptions to ChatGPT, we asked what formulas in chemistry uses the given covariates as parameters. We received a listing of formulas which we then implemented in the feature engineering phase.
+We quickly realized lacking domain knowledge in chemistry and physiscs, the competence required analysing molecular data. The principal idea is to compose *meaningful features*, something we were inspired by the discussion at *Bayesian Data Analysis* course in the context of GLM (generalized linear models). After studying the university guidelines provided in the course page, we interpreted the rules such that we are able to use an external AI consultant. Hence, providing a listing of the features with descriptions to ChatGPT, we asked what formulas in chemistry uses the given covariates as parameters. We received a listing of formulas which we then implemented in the feature engineering phase.
 
 * AtomFraction: Proportion of carbon, oxygen, and nitrogen atoms in the molecule relative to the total atom count.
 * Polarity: Ratio of hydrogen bond donors to molecular weight.
@@ -146,3 +148,6 @@ No experiments can be done without an adequate measure of model performance. We 
 # References
 
 
+# Report of using Generative AI
+
+ChatGPT is used to find information about saturation vapour pressure and to find some basic formulas what can be derived from a give set of features.
