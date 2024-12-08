@@ -17,7 +17,7 @@ py_install("pandas")
 py_install("matplotlib")
 py_install("seaborn")
 py_install("statsmodels")
-py_install("ISLP")
+# py_install("ISLP")
 ```
 
 ```{python, echo=FALSE}
@@ -145,9 +145,8 @@ Engineering of Machine Learning course covers a broad set of tools to practise p
 
 No experiments can be done without an adequate measure of model performance. We considered using either separate train-validation split or use cross-validation. After exploring both avenues, because of the benefits discussed in the IML textbook @james_introduction_2023, we decided to move forward with cross-validation with five folds.
 
-# References
-
-
 # Report of using Generative AI
 
 ChatGPT is used to find information about saturation vapour pressure and to find some basic formulas what can be derived from a give set of features.
+
+# References
