@@ -1,6 +1,6 @@
 ---
 title: "IML2024 Term project Report"
-author: "Patrik Keinonen, Mikko Kallio, Tuuli Toivanen-Gripentrog"
+author: "Group 190 - Patrik Keinonen, Mikko Kallio, Tuuli Toivanen-Gripentrog"
 date: "`r Sys.Date()`"
 bibliography: references.bib  
 csl: ieee.csl
@@ -39,13 +39,18 @@ In this project we use a support vector regressor (model) to predict logarithmic
 
 ## Final Kaggle Score
 
-0.7571
+0.7484 Private (4th place)
 
-# Feature engineering
+0.7571 Public
 
-## Feature correlations
-We analyzed the different features and how they correlate between the target column log_pSat_Pa.  
-We analyzed the correlation values and listed the features which have the strongest correlation with the target as well the strongest correlation pairs among the features:
+# Feature Engineering
+
+We experimented with a set of different feature engineering methods to discover which changes yielded improvements in model performance.
+
+## Feature Correlations
+
+In the early discovery phase of the project, simple data analysis was conducted. 
+We plotted and listed the feature correlations between the target column log_pSat_Pa. Additionally the strongest correlation pairs among the features were identified.
 
 ```{python, echo=FALSE}
 # Korrelaatiomatriisi
@@ -64,15 +69,15 @@ plt.figure(figsize=(12, 12))
 sns.heatmap(corr, annot=True, cmap='coolwarm')
 ```
 
-We did not get good results by only selecting a subset of features based on the correlations above. We tried for example to select only the 5 most correlated variables and exclude others as well as drop some of features which were highly correlated with some other feature. This did not improve the models performance. Hence, we moved on to some more advanced feature engineering techniques. 
+We conducted feature selection experiments by selecting only the most correlated variables and excluding others. Additionally, we tried dropping some of the features which were highly correlated with another feature. These experiments did not improve the models performance. Hence, we moved on to some more advanced feature engineering techniques. 
 
-## Data Cleaning:
+## Data Cleaning
 
-Replace infinite values and missing data with zero. This ensures the dataset is well-suited for downstream modeling by preventing issues with invalid numerical values.
+By replacing infinite values and missing data with zero, we ensured the dataset is well-suited for downstream modeling, and prevented issues with invalid numerical values.
 
-## Creation of Derived Features:
+## Creation of Derived Features
 
-We quickly realized lacking domain knowledge in chemistry and physiscs, the competence required analysing molecular data. The principal idea is to compose *meaningful features*, something we were inspired by the discussion at *Bayesian Data Analysis* course in the context of GLM (generalized linear models). After studying the university guidelines provided in the course page, we interpreted the rules such that we are able to use an external AI consultant. Hence, providing a listing of the features with descriptions to ChatGPT, we asked what formulas in chemistry uses the given covariates as parameters. We received a listing of formulas which we then implemented in the feature engineering phase.
+We quickly realized lacking domain knowledge in chemistry and physiscs, the competence required analysing molecular data. The principal idea was to compose *meaningful features*, something we were inspired by the discussion at *Bayesian Data Analysis* course in the context of GLM (generalized linear models). After studying the university guidelines provided in the course page, we interpreted the rules so that we were able to use an external AI consultant. Hence, providing a listing of the features with descriptions to ChatGPT, we asked which formulas in chemistry use the given covariates as parameters. We received a listing of formulas which we then implemented in the feature engineering phase.
 
 * AtomFraction: Proportion of carbon, oxygen, and nitrogen atoms in the molecule relative to the total atom count.
 * Polarity: Ratio of hydrogen bond donors to molecular weight.
@@ -98,24 +103,35 @@ We quickly realized lacking domain knowledge in chemistry and physiscs, the comp
 * PolarityIndex: A combined measure of molecular polarity.
 * OxygenToCarbonRatio: Relative proportion of oxygen to carbon atoms.
 
-## Interaction Features:
+## Interaction Features
 
-To capture non-linear relationships, several interaction terms were introduced. We experimented with Sklearn `PolynomialFeatures(degree=2, intercation_only=True)`. This resulted in a convoluted dataset. Principal component analysis was also employed to reduce the complexity of the model. However, we defaulted into a more crude, manual process by defining the interactions by hand using semi-brute-force strategy.
-Hence, we tried different interactions such as: 
+To capture non-linear relationships, several interaction terms were introduced. We experimented with Sklearn `PolynomialFeatures(degree=2, intercation_only=True)`. This resulted in a convoluted dataset. Principal component analysis was also employed to reduce the complexity of the model.  
+However, we defaulted into a more crude, manual process by defining the interactions by hand using semi-brute-force strategy.
+Hence, we tried different interactions: 
 
-* PolarityIndex * FlexibilityRatio
-* ShapeCompactness * FlexibilityRatio
+```
+df['AtomFraction * Hydrophobicity'] = df['AtomFraction'] * df['Hydrophobicity']
+df['HydrogenBondPotential * NumOfC'] = df['HydrogenBondPotential'] * df['NumOfC']
+df['Hydrophobicity * NumOfC'] = df['Hydrophobicity'] * df['NumOfC']
+df['PolarityIndex_FlexibilityRatio'] = df['PolarityIndex'] * df['FlexibilityRatio']
+df['VolatilityIndex_DegreeOfUnsaturation'] = df['VolatilityIndex'] * df['DegreeOfUnsaturation']
+df['ShapeCompactness_FlexibilityRatio'] = df['ShapeCompactness'] * df['FlexibilityRatio']
+df['PolarityIndex * NumOfC'] = df['PolarityIndex'] * df['NumOfC']
+df['DegreeOfUnsaturation * NumOfC'] = df['DegreeOfUnsaturation'] * df['NumOfC']
+df['NumOfC * NumOfO'] = df['NumOfC'] * df['NumOfO']
+```
 
 in order to model potential synergistic effects between molecular properties.
 
 
-## Feature transformations
+## Feature Transformations
+
 As part of the preprocessing pipeline, we systematically explored various mathematical transformations of the input features to improve the model's performance. Transforming features can help normalize distributions, reduce the influence of outliers, and capture nonlinear patterns. 
 
 We developed a function to iterate through features and apply transformations based on a predefined set of transformation functions. Using a brute-force approach, we systematically evaluated each transformation for all features by assessing their impact on model performance.
 
 
-**Transformation Functions Explored:**  
+**Transformation Functions Explored**  
 
 * Logarithmic (log): Compresses large values and expands small ones, effective for reducing skewness.
 * Square root (sqrt): Reduces the magnitude of large values while preserving smaller ones.
@@ -126,9 +142,13 @@ We developed a function to iterate through features and apply transformations ba
 * Box-Cox: A parameterized transformation that aims to stabilize variance and make data approximately normal (applied only for strictly positive features). @noauthor_box_nodate 
 * Yeo-Johnson: Similar to Box-Cox but works with both positive and negative values. @kjytay_box-cox_2021
 
-# Trying out different models
+## Results From Feature Engineering
 
-We evaluated several models from different families listed below.
+The model performance increased by introducing derived, interaction and transformed features. Hence, we continued to explore which combination of the above-mentioned new features yields best results.  
+
+# Experiments With Different Models
+
+In the discovery phase of the project, several models from different families were evaluated:
 
 * Dummy regressor
 * Linear Regression
@@ -143,10 +163,12 @@ We observed that most promising results were produced by SVR and GBR models, whe
 
 Engineering of Machine Learning course covers a broad set of tools to practise professional, production level ML system management. Tuning the parameters of a model is a tedious task, which fortunately can be automatized. We implemented a model tuning infrastructure on top of Optuna @noauthor_optuna_nodate. Optuna was left running for hours traversing in the parameter space towards (some) optimal set of parameters. Using an iterative process of alternately exploring feature engineering and running hyperparameter tuning in Optuna, we found an improved combination of features and hyperparameters. 
 
+## Model validation
+
 No experiments can be done without an adequate measure of model performance. We considered using either separate train-validation split or use cross-validation. After exploring both avenues, because of the benefits discussed in the IML textbook @james_introduction_2023, we decided to move forward with cross-validation with five folds.
 
-# Report of using Generative AI
+# Report of Using Generative AI
 
-ChatGPT is used to find information about saturation vapour pressure and to find some basic formulas what can be derived from a give set of features.
+ChatGPT was used to find information about saturation vapour pressure and to find some basic formulas what can be derived from a given set of features.
 
 # References
